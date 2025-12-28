@@ -5,7 +5,7 @@
 ## A script for Wine compilation.
 ## Modified for custom Proton repository (KreitinnSoftware)
 ## Fixed: Uses generic GCC instead of hardcoded gcc-11
-## Updated: Robust Auto-detection for Ubuntu 22.04 & 24.04
+## Updated: Prioritizes Ubuntu 24.04 (Noble) detection
 ##
 ########################################################################
 
@@ -48,31 +48,40 @@ export WINE_BUILD_OPTIONS="--without-ldap --without-oss --disable-winemenubuilde
 export BUILD_DIR="${HOME}"/build_wine
 
 # ----------------------------------------------------------------------
-# AUTO-DETECCIÓN INTELIGENTE DE BOOTSTRAPS
+# AUTO-DETECCIÓN INTELIGENTE DE BOOTSTRAPS (Prioridad: 24.04)
 # ----------------------------------------------------------------------
 echo "🔍 Buscando entornos (bootstraps) instalados..."
 
-# --- Ubuntu 24.04 (Noble Numbat) ---
-if [ -d "/opt/chroots/noble64_chroot" ]; then
-    echo "✅ Detectado: Ubuntu 24.04 (Noble) en /opt/chroots/"
-    export BOOTSTRAP_X64=/opt/chroots/noble64_chroot
-    export BOOTSTRAP_X32=/opt/chroots/noble32_chroot
-elif [ -d "/opt/noble64_chroot" ]; then
+# --- Ubuntu 24.04 (Noble Numbat) - PRIORIDAD MÁXIMA ---
+# Buscamos en todas las ubicaciones posibles donde GitHub Actions podría descomprimirlo
+if [ -d "/opt/noble64_chroot" ]; then
     echo "✅ Detectado: Ubuntu 24.04 (Noble) en /opt/"
     export BOOTSTRAP_X64=/opt/noble64_chroot
     export BOOTSTRAP_X32=/opt/noble32_chroot
+elif [ -d "/opt/chroots/noble64_chroot" ]; then
+    echo "✅ Detectado: Ubuntu 24.04 (Noble) en /opt/chroots/"
+    export BOOTSTRAP_X64=/opt/chroots/noble64_chroot
+    export BOOTSTRAP_X32=/opt/chroots/noble32_chroot
+elif [ -d "/opt/Bootstraps/noble64_chroot" ]; then
+    echo "✅ Detectado: Ubuntu 24.04 (Noble) en /opt/Bootstraps/"
+    export BOOTSTRAP_X64=/opt/Bootstraps/noble64_chroot
+    export BOOTSTRAP_X32=/opt/Bootstraps/noble32_chroot
 
 # --- Ubuntu 22.04 (Jammy Jellyfish) ---
-elif [ -d "/opt/chroots/jammy64_chroot" ]; then
-    echo "✅ Detectado: Ubuntu 22.04 (Jammy) en /opt/chroots/"
-    export BOOTSTRAP_X64=/opt/chroots/jammy64_chroot
-    export BOOTSTRAP_X32=/opt/chroots/jammy32_chroot
 elif [ -d "/opt/jammy64_chroot" ]; then
     echo "✅ Detectado: Ubuntu 22.04 (Jammy) en /opt/"
     export BOOTSTRAP_X64=/opt/jammy64_chroot
     export BOOTSTRAP_X32=/opt/jammy32_chroot
+elif [ -d "/opt/chroots/jammy64_chroot" ]; then
+    echo "✅ Detectado: Ubuntu 22.04 (Jammy) en /opt/chroots/"
+    export BOOTSTRAP_X64=/opt/chroots/jammy64_chroot
+    export BOOTSTRAP_X32=/opt/chroots/jammy32_chroot
 
 # --- Ubuntu 20.04 (Focal Fossa) ---
+elif [ -d "/opt/focal64_chroot" ]; then
+    echo "✅ Detectado: Ubuntu 20.04 (Focal)"
+    export BOOTSTRAP_X64=/opt/focal64_chroot
+    export BOOTSTRAP_X32=/opt/focal32_chroot
 elif [ -d "/opt/chroots/focal64_chroot" ]; then
     echo "✅ Detectado: Ubuntu 20.04 (Focal)"
     export BOOTSTRAP_X64=/opt/chroots/focal64_chroot
@@ -80,7 +89,9 @@ elif [ -d "/opt/chroots/focal64_chroot" ]; then
 
 # --- Fallback: Ubuntu 18.04 (Bionic Beaver) ---
 else
-    echo "⚠️ No se detectaron versiones nuevas. Intentando usar defecto: Ubuntu 18.04 (Bionic)"
+    # Si todo falla, intentamos el antiguo, pero avisamos.
+    echo "⚠️ No se detectaron versiones 24.04, 22.04 o 20.04."
+    echo "Intentando usar defecto: Ubuntu 18.04 (Bionic)"
     export BOOTSTRAP_X64=/opt/chroots/bionic64_chroot
     export BOOTSTRAP_X32=/opt/chroots/bionic32_chroot
 fi
