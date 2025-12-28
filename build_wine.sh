@@ -227,7 +227,7 @@ elif [ "$WINE_BRANCH" = "proton" ]; then
 			git clone https://github.com/ValveSoftware/wine -b "${PROTON_BRANCH}"
 		fi
 	else
-		git clone -b proton_10.10 https://github.com/KreitinnSoftware/proton-wine.git wine
+		git clone https://github.com/KreitinnSoftware/proton-wine.git wine
 	fi
 
 	WINE_VERSION="$(cat wine/VERSION | tail -c +14)-$(git -C wine rev-parse --short HEAD)"
