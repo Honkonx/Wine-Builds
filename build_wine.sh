@@ -5,7 +5,7 @@
 ## A script for Wine compilation.
 ## Modified for custom Proton repository (KreitinnSoftware)
 ## Fixed: Uses generic GCC instead of hardcoded gcc-11
-## Updated: Bootstraps set to Ubuntu 24.04 (Noble)
+## Updated: Robust Auto-detection for Ubuntu 22.04 & 24.04
 ##
 ########################################################################
 
@@ -48,12 +48,42 @@ export WINE_BUILD_OPTIONS="--without-ldap --without-oss --disable-winemenubuilde
 export BUILD_DIR="${HOME}"/build_wine
 
 # ----------------------------------------------------------------------
-# ACTUALIZACIÓN DE BOOTSTRAPS
+# AUTO-DETECCIÓN INTELIGENTE DE BOOTSTRAPS
 # ----------------------------------------------------------------------
-# Configurado para Ubuntu 24.04 (Noble Numbat)
-# Si quisieras usar 22.04, cambia 'noble' por 'jammy'
-export BOOTSTRAP_X64=/opt/chroots/noble64_chroot
-export BOOTSTRAP_X32=/opt/chroots/noble32_chroot
+echo "🔍 Buscando entornos (bootstraps) instalados..."
+
+# --- Ubuntu 24.04 (Noble Numbat) ---
+if [ -d "/opt/chroots/noble64_chroot" ]; then
+    echo "✅ Detectado: Ubuntu 24.04 (Noble) en /opt/chroots/"
+    export BOOTSTRAP_X64=/opt/chroots/noble64_chroot
+    export BOOTSTRAP_X32=/opt/chroots/noble32_chroot
+elif [ -d "/opt/noble64_chroot" ]; then
+    echo "✅ Detectado: Ubuntu 24.04 (Noble) en /opt/"
+    export BOOTSTRAP_X64=/opt/noble64_chroot
+    export BOOTSTRAP_X32=/opt/noble32_chroot
+
+# --- Ubuntu 22.04 (Jammy Jellyfish) ---
+elif [ -d "/opt/chroots/jammy64_chroot" ]; then
+    echo "✅ Detectado: Ubuntu 22.04 (Jammy) en /opt/chroots/"
+    export BOOTSTRAP_X64=/opt/chroots/jammy64_chroot
+    export BOOTSTRAP_X32=/opt/chroots/jammy32_chroot
+elif [ -d "/opt/jammy64_chroot" ]; then
+    echo "✅ Detectado: Ubuntu 22.04 (Jammy) en /opt/"
+    export BOOTSTRAP_X64=/opt/jammy64_chroot
+    export BOOTSTRAP_X32=/opt/jammy32_chroot
+
+# --- Ubuntu 20.04 (Focal Fossa) ---
+elif [ -d "/opt/chroots/focal64_chroot" ]; then
+    echo "✅ Detectado: Ubuntu 20.04 (Focal)"
+    export BOOTSTRAP_X64=/opt/chroots/focal64_chroot
+    export BOOTSTRAP_X32=/opt/chroots/focal32_chroot
+
+# --- Fallback: Ubuntu 18.04 (Bionic Beaver) ---
+else
+    echo "⚠️ No se detectaron versiones nuevas. Intentando usar defecto: Ubuntu 18.04 (Bionic)"
+    export BOOTSTRAP_X64=/opt/chroots/bionic64_chroot
+    export BOOTSTRAP_X32=/opt/chroots/bionic32_chroot
+fi
 # ----------------------------------------------------------------------
 
 export scriptdir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
@@ -61,7 +91,7 @@ export scriptdir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 # ----------------------------------------------------------------------
 # CORRECCIÓN DE COMPILADOR
 # ----------------------------------------------------------------------
-# Antes forzaba gcc-11. Ahora usa el defecto del sistema.
+# Usa el compilador por defecto del bootstrap detectado
 export CC="gcc"
 export CXX="g++"
 
@@ -305,9 +335,17 @@ if ! command -v bwrap 1>/dev/null; then
 	exit 1
 fi
 
+# ----------------------------------------------------------------------
+# AUTO-DETECT ERROR CHECK
+# ----------------------------------------------------------------------
 if [ ! -d "${BOOTSTRAP_X64}" ] || [ ! -d "${BOOTSTRAP_X32}" ]; then
 	clear
-	echo "Bootstraps are required for compilation!"
+	echo "❌ Error Crítico: No se encontraron los Bootstraps."
+    echo "Se buscó en /opt/chroots/ y /opt/"
+    echo "Contenido de /opt/:"
+    ls -l /opt/
+    echo "Contenido de /opt/chroots/ (si existe):"
+    ls -l /opt/chroots/ 2>/dev/null
 	exit 1
 fi
 
