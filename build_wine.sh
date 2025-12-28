@@ -4,7 +4,7 @@
 ##
 ## A script for Wine compilation.
 ## Modified for custom Proton repository (KreitinnSoftware)
-## Now wraps builds in ZIP format
+## Fixed: Uses generic GCC instead of hardcoded gcc-11
 ##
 ########################################################################
 
@@ -50,14 +50,18 @@ export BOOTSTRAP_X32=/opt/chroots/bionic32_chroot
 
 export scriptdir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 
-# Compiler setup
-export CC="gcc-11"
-export CXX="g++-11"
+# ----------------------------------------------------------------------
+# CORRECCIÓN DE COMPILADOR
+# ----------------------------------------------------------------------
+# Antes forzaba gcc-11. Ahora usa el defecto del sistema.
+export CC="gcc"
+export CXX="g++"
 
 export CROSSCC_X32="i686-w64-mingw32-gcc"
 export CROSSCXX_X32="i686-w64-mingw32-g++"
 export CROSSCC_X64="x86_64-w64-mingw32-gcc"
 export CROSSCXX_X64="x86_64-w64-mingw32-g++"
+# ----------------------------------------------------------------------
 
 export CFLAGS_X32="-march=i686 -msse2 -mfpmath=sse -O2 -ftree-vectorize"
 export CFLAGS_X64="-march=x86-64 -msse3 -mfpmath=sse -O2 -ftree-vectorize"
@@ -248,7 +252,6 @@ else
 		fi
 
 		if [ "${EXPERIMENTAL_WOW64}" = "true" ]; then
-			# Linea corregida: Se eliminaron caracteres ocultos antes del if
 			if ! grep Disabled "${BUILD_DIR}"/wine-staging-"${WINE_VERSION}"/patches/ntdll-Syscall_Emulation/definition 1>/dev/null; then
 				STAGING_ARGS="--all -W ntdll-Syscall_Emulation"
 			fi
@@ -379,19 +382,16 @@ for build in ${builds_list}; do
 		fi
 
         # -------------------------------------------------------------
-        # NUEVA LÓGICA DE COMPRESIÓN (TAR.XZ -> ZIP)
+        # COMPRESIÓN ZIP
         # -------------------------------------------------------------
         echo "Comprimiendo ${build} a formato .tar.xz..."
 		tar -Jcf "${build}".tar.xz "${build}"
 
         echo "Empaquetando dentro de archivo ZIP para facilitar subida..."
-        # Crea archivo.zip que contiene archivo.tar.xz
         zip "${build}.zip" "${build}.tar.xz"
         
-        # Mueve el zip al directorio final y borra el tar.xz intermedio
 		mv "${build}.zip" "${result_dir}"
         rm "${build}.tar.xz"
-        # -------------------------------------------------------------
 	fi
 done
 
