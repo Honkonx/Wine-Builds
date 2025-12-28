@@ -21,10 +21,21 @@ jobs:
       - name: Build Proton
         run: |
           sudo apt update
-          sudo apt install debootstrap perl git wget xz-utils bubblewrap autoconf
-          sudo tar -C /opt -xpf /opt/Bootstraps/bootstraps.tar.xz
-          chmod +x build_wine.sh
           sudo apt install debootstrap perl git wget xz-utils bubblewrap autoconf zip
+          
+          # --- CORRECCIÓN PARA UBUNTU 24.04 (OBLIGATORIO) ---
+          # Permite que bwrap cree namespaces de usuario
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_unconfined=0
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          # --------------------------------------------------
+
+          # Ajusta la ruta según donde se descargue tu artefacto (ej. /opt/Bootstraps o directo en /opt)
+          # Si tu artifact descarga directo en /opt, usa esta línea:
+          sudo tar -C /opt -xpf /opt/bootstraps.tar.xz || sudo tar -C /opt -xpf /opt/Bootstraps/bootstraps.tar.xz
+          
+          chmod +x build_wine.sh
+          
+          # Ejecutar el script (sin sudo, usando el sysctl fix)
           MICEWINE_BRANCH="proton_10.0" WINE_BRANCH=proton ./build_wine.sh
           sha256sum *.tar.xz
       - uses: actions/upload-artifact@v4
