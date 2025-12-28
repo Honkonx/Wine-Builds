@@ -4,6 +4,7 @@
 ##
 ## A script for Wine compilation.
 ## Modified for custom Proton repository (KreitinnSoftware)
+## Now wraps builds in ZIP format
 ##
 ########################################################################
 
@@ -111,6 +112,7 @@ if ! command -v git 1>/dev/null; then echo "Please install git"; exit 1; fi
 if ! command -v autoconf 1>/dev/null; then echo "Please install autoconf"; exit 1; fi
 if ! command -v wget 1>/dev/null; then echo "Please install wget"; exit 1; fi
 if ! command -v xz 1>/dev/null; then echo "Please install xz"; exit 1; fi
+if ! command -v zip 1>/dev/null; then echo "Please install zip (sudo apt install zip)"; exit 1; fi
 
 # Replace "latest" parameter
 if [ "${WINE_VERSION}" = "latest" ] || [ -z "${WINE_VERSION}" ]; then
@@ -310,8 +312,10 @@ export CROSSCXXFLAGS="${CROSSCFLAGS_X64}"
 
 mkdir "${BUILD_DIR}"/build64
 cd "${BUILD_DIR}"/build64 || exit
-${BWRAP64} "${BUILD_DIR}"/wine/configure --enable-win64 ${WINE_BUILD_OPTIONS} --prefix "${BUILD_DIR}"/wine-"${BUILD_NAME}"-amd64
-${BWRAP64} make -j$(nproc) install
+echo "Configuring 64-bit build..."
+${BWRAP64} "${BUILD_DIR}"/wine/configure --enable-win64 ${WINE_BUILD_OPTIONS} --prefix "${BUILD_DIR}"/wine-"${BUILD_NAME}"-amd64 || exit 1
+echo "Compiling 64-bit build..."
+${BWRAP64} make -j$(nproc) install || exit 1
 
 export CROSSCC="${CROSSCC_X32}"
 export CROSSCXX="${CROSSCXX_X32}"
@@ -322,8 +326,10 @@ export CROSSCXXFLAGS="${CROSSCFLAGS_X32}"
 
 mkdir "${BUILD_DIR}"/build32-tools
 cd "${BUILD_DIR}"/build32-tools || exit
-PKG_CONFIG_LIBDIR=/usr/lib/i386-linux-gnu/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/lib/i386-linux-gnu/pkgconfig ${BWRAP32} "${BUILD_DIR}"/wine/configure ${WINE_BUILD_OPTIONS} --prefix "${BUILD_DIR}"/wine-"${BUILD_NAME}"-x86
-${BWRAP32} make -j$(nproc) install
+echo "Configuring 32-bit tools..."
+PKG_CONFIG_LIBDIR=/usr/lib/i386-linux-gnu/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/lib/i386-linux-gnu/pkgconfig ${BWRAP32} "${BUILD_DIR}"/wine/configure ${WINE_BUILD_OPTIONS} --prefix "${BUILD_DIR}"/wine-"${BUILD_NAME}"-x86 || exit 1
+echo "Compiling 32-bit tools..."
+${BWRAP32} make -j$(nproc) install || exit 1
 
 export CFLAGS="${CFLAGS_X64}"
 export CXXFLAGS="${CFLAGS_X64}"
@@ -332,8 +338,10 @@ export CROSSCXXFLAGS="${CROSSCFLAGS_X64}"
 
 mkdir "${BUILD_DIR}"/build32
 cd "${BUILD_DIR}"/build32 || exit
-PKG_CONFIG_LIBDIR=/usr/lib/i386-linux-gnu/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/lib/i386-linux-gnu/pkgconfig ${BWRAP32} "${BUILD_DIR}"/wine/configure --with-wine64="${BUILD_DIR}"/build64 --with-wine-tools="${BUILD_DIR}"/build32-tools ${WINE_BUILD_OPTIONS} --prefix "${BUILD_DIR}"/wine-${BUILD_NAME}-amd64
-${BWRAP32} make -j$(nproc) install
+echo "Configuring 32-bit build (WoW64)..."
+PKG_CONFIG_LIBDIR=/usr/lib/i386-linux-gnu/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/lib/i386-linux-gnu/pkgconfig ${BWRAP32} "${BUILD_DIR}"/wine/configure --with-wine64="${BUILD_DIR}"/build64 --with-wine-tools="${BUILD_DIR}"/build32-tools ${WINE_BUILD_OPTIONS} --prefix "${BUILD_DIR}"/wine-${BUILD_NAME}-amd64 || exit 1
+echo "Compiling 32-bit build (WoW64)..."
+${BWRAP32} make -j$(nproc) install || exit 1
 
 echo
 echo "Compilation complete"
@@ -370,8 +378,20 @@ for build in ${builds_list}; do
 			cp "${build}"/bin/wine64 "${build}"/bin/wine
 		fi
 
+        # -------------------------------------------------------------
+        # NUEVA LÓGICA DE COMPRESIÓN (TAR.XZ -> ZIP)
+        # -------------------------------------------------------------
+        echo "Comprimiendo ${build} a formato .tar.xz..."
 		tar -Jcf "${build}".tar.xz "${build}"
-		mv "${build}".tar.xz "${result_dir}"
+
+        echo "Empaquetando dentro de archivo ZIP para facilitar subida..."
+        # Crea archivo.zip que contiene archivo.tar.xz
+        zip "${build}.zip" "${build}.tar.xz"
+        
+        # Mueve el zip al directorio final y borra el tar.xz intermedio
+		mv "${build}.zip" "${result_dir}"
+        rm "${build}.tar.xz"
+        # -------------------------------------------------------------
 	fi
 done
 
@@ -379,4 +399,4 @@ rm -rf "${BUILD_DIR}"
 
 echo
 echo "Done"
-echo "The builds should be in ${result_dir}"
+echo "The builds should be in ${result_dir} as .zip files"
