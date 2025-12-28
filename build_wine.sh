@@ -5,6 +5,7 @@
 ## A script for Wine compilation.
 ## Modified for custom Proton repository (KreitinnSoftware)
 ## Fixed: Uses generic GCC instead of hardcoded gcc-11
+## Updated: Bootstraps set to Ubuntu 24.04 (Noble)
 ##
 ########################################################################
 
@@ -45,8 +46,15 @@ export WINE_BUILD_OPTIONS="--without-ldap --without-oss --disable-winemenubuilde
 
 # Directories
 export BUILD_DIR="${HOME}"/build_wine
-export BOOTSTRAP_X64=/opt/chroots/bionic64_chroot
-export BOOTSTRAP_X32=/opt/chroots/bionic32_chroot
+
+# ----------------------------------------------------------------------
+# ACTUALIZACIÓN DE BOOTSTRAPS
+# ----------------------------------------------------------------------
+# Configurado para Ubuntu 24.04 (Noble Numbat)
+# Si quisieras usar 22.04, cambia 'noble' por 'jammy'
+export BOOTSTRAP_X64=/opt/chroots/noble64_chroot
+export BOOTSTRAP_X32=/opt/chroots/noble32_chroot
+# ----------------------------------------------------------------------
 
 export scriptdir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 
